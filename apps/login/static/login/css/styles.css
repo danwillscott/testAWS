@@ -1,0 +1,12 @@
+body{
+    background-color: antiquewhite;
+}
+.reg_form{
+    display: inline-block;
+    margin-left: 10%;
+}
+.loginform{
+    display: inline-block;
+    vertical-align: top;
+    margin-left: 10%;
+}
