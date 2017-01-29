@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete {{ id }}</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'login/css/styles.css' %}" />
+</head>
+<body>
+    <h2>Quotes added by {{ user.first_name }} {{ user.last_name }}</h2>
+    <h5>Count: {{ times }}</h5>
+    <table>
+        {% for quote in quotes %}
+            <li class="{{ quote.id }}">Quote by: {{ quote.quote_by }} </li>
+            <li class="{{ quote.id }}">Quote: {{ quote.the_quote }} </li>
+                <hr>
+        {% endfor %}
+    </table>
+    <a href="/dashboard/{{ request.session.username }}/">{{ request.session.first_name }}' Dashboard</a>
+    <hr>
+    <a href="/log_out">Log {{ request.session.first_name }} Out?</a>
+</body>
+</html>

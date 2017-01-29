@@ -8,13 +8,14 @@
     </head>
     <body>
         <!-- registration form -->
-        <form id ="reg_form" class="reg_form" action="/login/register" method="post"> {# TODO ACTION FIELD #}
+        <form id ="reg_form" class="reg_form" action="/register/" method="post"> {# TODO ACTION FIELD #}
             {% csrf_token %}
             <fieldset>
             <legend>User Registration Form</legend>
             <div class="flash_messages">
                 <!-- put message stuff here -->
-                {% if request.session.log_reg == 'reg' %}
+{#                {% if request.session.log_reg == 'reg' %}#}
+                {% if request.session.login == 'reg' %}
                    <ol class="messages">
                        {% for message in messages %}
                          <li class="{{ message.tags }}">{{ message }}</li>
@@ -28,14 +29,14 @@
             <label for="last_name">Last Name:</label><br>
             <input type="text" name="last_name" id='last_name' placeholder="Last Name">
             <br>
-            <label for="username">User Name:</label><br>
+            <label for="username">Alis:</label><br>
             <input type="text" name="username" id='username' placeholder="User Name">
             <br>
             <label for="email">Email: </label><br>
             <input type="email" name="email" id='email' placeholder="some@email.com">
             <br>
             <br>
-            <label for="password">Password: </label>
+            <label for="password">Password:</label>
             <input type="password" name="password" id='password' placeholder="Type your password.">
             <br>
             <label for="password_confirm">Confirm Password: </label>
@@ -51,13 +52,13 @@
         </form>
         <!-- end registration form -->
 {#        <hr>#}
-        <form id ="loginform" class="loginform" action="/login/log_in" method="post"> {# TODO ACTION FIELD #}
+        <form id ="loginform" class="loginform" action="/login/" method="post"> {# TODO ACTION FIELD #}
             {% csrf_token %}
             <fieldset>
             <legend>User Login Form:</legend>
             <div class="login">
                 <!-- put message stuff here -->
-                {% if request.session.log_reg == 'log' %}
+                {% if request.session.login == 'log' %}
                    <ol class="messages">
                        {% for message in messages %}
                          <li class="{{ message.tags }}">{{ message }}</li>

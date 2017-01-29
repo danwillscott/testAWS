@@ -10,3 +10,24 @@ body{
     vertical-align: top;
     margin-left: 10%;
 }
+.right{
+    display: inline-block;
+    width: 40%;
+    vertical-align: top;
+    position: relative;
+    left: 10%;
+}
+.left{
+    margin-left: 2%;
+    display: inline-block;
+    width: 40%;
+    vertical-align: top;
+}
+.logout{
+    position: absolute;
+    right:5%;
+    top: 5%;
+}
+li{
+    list-style: none;
+}

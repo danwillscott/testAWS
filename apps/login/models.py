@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
 import re
 import bcrypt
 salt = bcrypt.gensalt()
@@ -29,7 +29,117 @@ class Users(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
-# ***** START of fully tested user validation AND Logic ****
+
+class Quote(models.Model):
+    the_quote = models.CharField(max_length=255)
+    quote_by = models.CharField(max_length=100)
+    owner = models.ForeignKey('Users', on_delete=models.CASCADE, related_name="quoteowner")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+
+
+class Favorite(models.Model):
+    user_id = models.ForeignKey('Users', on_delete=models.CASCADE, related_name="userid")
+    quote_id = models.ForeignKey('Quote', on_delete=models.CASCADE, related_name="quoteid")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+
+
+# MODELS ABOVE
+
+#           +++++ TESTING CODE +++++
+
+
+class OwnedQuotes(object):
+    def __init__(self, owner_id):
+        self.owner_id = owner_id
+        self.quotes = ''
+        self.owner = ''
+        self.times = ''
+        self.truth = False
+
+    def get_quote(self):
+        try:
+            self.owner = Users.objects.get(id=self.owner_id)
+            self.quotes = Quote.objects.filter(owner_id=self.owner_id)
+            self.times = self.quotes.count()
+            self.truth = True
+
+        except ObjectDoesNotExist:
+            self.truth = False
+
+# self.test = Users.objects.filter(quoteowner__quoteid__user_id_id=self.id)  TODO THIS IS FAV? WTF
+
+#           +++++ END TESTING CODE +++++
+
+
+#           ***** THIS HANDLES POPULATING QUOTES ON PAGE *****
+
+
+class AddQuotes(object):
+    def __init__(self):
+        self.quote = ''
+        self.quote_by = ''
+        self.valid = True
+        self.message_dict = {
+            'alert_quote': '',
+            'alert_by': '',
+        }
+
+    def get_data(self, data):
+        self.quote_by = data['quote_by']
+        self.quote = data['quote']
+        return self
+
+    def quote_validate(self):
+        if len(self.quote) < 11:
+            self.message_dict['alert_quote'] = "quote must be 10 or longer"
+            self.valid = False
+        if len(self.quote_by) < 4:
+            self.message_dict['alert_by'] = "Name of quoter must be 3 or longer"
+            self.valid = False
+        return self.valid
+
+    def add_quote(self, user_id):
+        if self.valid:
+            user = Users.objects.get(id=user_id)
+            Quote.objects.create(the_quote=self.quote, quote_by=self.quote_by, owner=user)
+
+
+#           ***** THIS HANDLES LIKES *****
+
+
+class UserQuote(object):
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.quotes = ''
+        self.others = ''
+
+    def pull_quote(self):
+        self.quotes = Quote.objects.filter(quoteid__user_id=self.user_id)
+        # self.quotes = Favorite.objects.filter(user_id=self.user_id)
+        # self.others = Quote.objects.all().exclude(owner_id=self.user_id)
+        self.others = Quote.objects.exclude(quoteid__user_id=self.user_id)
+
+
+#           ***** THIS HANDLES LIKING AND UNLIKE QUOTES
+
+
+class LikeUnlike(object):
+
+    @staticmethod
+    def passed_data(route, user_id):
+        Favorite.objects.create(quote_id_id=route, user_id_id=user_id)
+
+    @staticmethod
+    def unlike(route, user_id):
+        unlike = Favorite.objects.filter(quote_id_id=route, user_id_id=user_id)
+        unlike.delete()
+
+
+#           ***************************
+#           ***** REGISTER HANDLER **** TODO DO NOT CHANGE
+#           ***************************
 
 
 class NewUser(object):
@@ -49,6 +159,8 @@ class NewUser(object):
     def __init__(self):
         self.fn, self.ln, self.un, self.em, self.pw, self.cpw, self.dob = '', '', '', '', '', '', ''
 
+        # self.user_id = ''
+
         self.message_dict = {
             'truth': True,
             'name': '',
@@ -65,7 +177,8 @@ class NewUser(object):
             'username': '',
             'email': '',
             'password': '',
-            'dob_date': ''
+            'dob_date': '',
+            'user_id': ''
         }
 
         self.add_dict = {
@@ -134,7 +247,7 @@ class NewUser(object):
                 self.message_dict['dob'] = 'You must have been born before 2004 to register'
         elif self.dob == '':
             self.message_dict['truth'] = False
-            self.message_dict['dob'] = 'You must have been born before 2004 to register'
+            self.message_dict['dob'] = 'You must have been born before 2004 to register People might post weird stuff'
         if self.message_dict['truth']:
             # print('*****ALL PASS Making user_dict NOW*****')  # TODO
             x = self.pw
@@ -163,6 +276,9 @@ class NewUser(object):
                                      username=x['username'], email=x['email'],
                                      dob_date=x['dob_date'], user_level=x['user_level'],
                                      password=x['password'])
+                temp = Users.objects.filter(username=x['username'])
+                self.user_dict['user_id'] = temp[0].id
+                # self.user_dict['user_id'] = temp[0].id
                 self.add_dict['truth'] = True
                 self.add_dict['alert'] = 'Registration Complete!'
                 # print('*****TRY get_or_create(x_dict) PASS*****')  # TODO REMOVE FOR FINAL
@@ -177,8 +293,8 @@ class NewUser(object):
         return self
 
 
-# ***** END OF NewUser() CLASS *****
-# ***** START OF IsAdmin() CLASS *****
+#           ***** END OF NewUser() CLASS ***** TODO NOT USED
+#           ***** START OF IsAdmin() CLASS *****
 
 
 class IsAdmin(object):  # Fully tested
@@ -209,8 +325,11 @@ class IsAdmin(object):  # Fully tested
                     self.admin = True
 
 
-# ***** END OF IsAdmin CLASS *****
-# ***** START OF LogIn CLASS *****
+#           ***** END OF IsAdmin CLASS *****
+
+#           ************************
+#           ***** LOGIN HANDLER **** TODO DO NOT CHANGE
+#           ************************
 
 
 class LogIn(object):
@@ -247,6 +366,7 @@ class LogIn(object):
                     self.user_dict = {
                         'truth': True,
                         'first_name': user_obj[0].first_name,
+                        'user_id': user_obj[0].id,
                         'last_name': user_obj[0].last_name,
                         'username': user_obj[0].username,
                         'email': user_obj[0].email,
@@ -264,14 +384,10 @@ class LogIn(object):
             self.alert_message['alert'] = "User name or Email did not match password"
 
 
-# ***** End of fully tested user validation ****
-
-# +++++ TESTING CODE +++++
+#           ***** End of fully tested user validation ****
 
 
-# +++++ END TESTING CODE +++++
-
-# ***** EXPERIMENTAL FUNCTIONAL CODE NOT FULLY TESTED *****
+#           ***** EXPERIMENTAL FUNCTIONAL CODE NOT FULLY TESTED *****
 
 
 class EditUser(object):  # TODO class not fully tested only each piece on it's own
@@ -299,102 +415,21 @@ class EditUser(object):  # TODO class not fully tested only each piece on it's o
             self.add_dict['alert'] = 'Something went wrong on our end. Please try again'
         return self
 
-# ***** END EXPERIMENTAL FUNCTIONAL CODE NOT FULLY TESTED *****
-
-# ***** UNTESTED CODE BELOW USE WITH CAUTION *****
+#           ***** END EXPERIMENTAL FUNCTIONAL CODE NOT FULLY TESTED *****
 
 
-class GET(models.Manager):
+#               ***** SLUG FIELD *****
 
-    @staticmethod
-    def ui(user_id):
-        return Users.objects.filter(id=user_id)
-
-
-class Set(models.Manager):
-
-    @staticmethod
-    def new_user(fn, ln, un, email, dob, des, pw):
-        """This makes a new user"""
-        hash_pw = bcrypt.hashpw(pw, bcrypt.gensalt(14))
-        Users.objects.create(first_name=fn, last_name=ln, username=un, email=email, dob_date=dob, description=des,
-                             password=hash_pw)
-
-    @staticmethod
-    def update(where, user, new_val):
-        """The where is the column name to be updated
-            The user is the user name to update
-            The new_val is the value to be passed in"""
-        user_instances = Users.objects.filter(username=user)
-        if where == 'first_name':
-            user_instances.update(first_name=new_val)  # Updates first name
-        if where == 'last_name':
-            user_instances.update(last_name=new_val)
-        if where == 'username':
-            user_instances.update(username=new_val)
-        if where == 'email':
-            user_instances.update(email=new_val)
-        if where == 'description':
-            user_instances.update(description=new_val)
-        if where == 'password':
-            hash_pw = bcrypt.hashpw(new_val, salt)
-            user_instances.update(password=hash_pw)
-
-
-# ***** REFACTOR AND REMOVE THE CODE BELOW *****
-
-
-class Registration(models.Model):  # TODO
-
-    @staticmethod
-    def register(fn, ln, un, email, dob, des, pw):
-        hash_pw = bcrypt.hashpw(pw, bcrypt.gensalt(14))
-        Users.objects.create(first_name=fn, last_name=ln, username=un, email=email, dob_date=dob, description=des, password=hash_pw)
-
-    @staticmethod
-    def add_user(first_name, last_name, username, email, dob_date):
-        return_dictionary = {
-            'truth': False,
-            'alert': ''
-        }
-        """This will check if a user is valid and return an error message if user is in the DB already"""
-        #  TODO set user_level by default. first user max all others low
-        try:
-            Users.objects.get(user_level=9)
-            try:
-                Users.objects.create(first_name, last_name, username, email, dob_date)
-                return Users.objects.filter(username=username)
-            except IntegrityError:
-                return False
-        except ObjectDoesNotExist:
-            try:
-                Users.objects.create(first_name, last_name, username, email, dob_date, user_level=9)
-                return Users.objects.filter(username=username)
-            except IntegrityError:
-                return False
-
-    @staticmethod
-    def name_validate(name):
-        """This function validates a name with a simple regex for letter only and length greater then 2"""
-        if len(name) > 2 and name_regex.match(name):
-            return True
-        return False
-
-
-# ***** REFACTOR AND REMOVE THE CODE ABOVE *****
-
-
-# ***** SLUG FIELD *****
-
+#
 # NAME_REGEX     = re.compile(r'^[a-zA-Z -\']{3,}$')  # Other Regex to test
 # PASSWORD_REGEX = re.compile(r'^([A-Z])+([a-z])+([0-9])+$')
 # Create your models here.
 # , fn, ln, un, em, pw, cpw, dob
 # @staticmethod
 # def login_validate(username, password):
-#     print('***** models.py login_validate start *****')  # TOD
+#     print('***** models.py login_validate start *****')
 #     try:
-#         print('***** login_validate TRY is run *****')  # TODO
+#         print('***** login_validate TRY is run *****')
 #         password_hash = Users.objects.get(username=username)
 #         password_hash = password_hash.password
 #     except ObjectDoesNotExist:
@@ -404,7 +439,7 @@ class Registration(models.Model):  # TODO
 #             'alert': "User name and password are incorrect"
 #         }
 #         return to_return
-#         # checked_password = check_password(password, password_hash)  #TODO use hashed password
+#         # checked_password = check_password(password, password_hash)
 #         # print(checked_password)
 #         # if checked_password:
 #     if password == password_hash:
@@ -422,3 +457,82 @@ class Registration(models.Model):  # TODO
 #     else:
 #         return False
 
+#  ***** SLUG FIELD 2 *****
+
+#       OLD VALIDATION PIECES
+# try:
+#     Users.objects.create(first_name=request.POST['first_name'],
+# last_name=request.POST['last_name'], username=request.POST['username'],
+#  email=request.POST['email'], password=request.POST['password'])
+#
+# except IntegrityError:
+#     messages.warning(request, "User name already in use! Please select a new one")
+#     return redirect('/login')
+# d ={
+#     'first_name': request.POST['first_name'],
+#     'last_name': request.POST['last_name'],
+#     'username': request.POST['username'],
+#     'email': request.POST['email'],
+#     'password': request.POST['password'],
+#     'password_confirm': request.POST['password_confirm'],
+#     'dob_date': request.POST['dob_date'],
+# }
+# new_user.new_user()
+# new_user.add_user()
+# print(new_user.user_dict)
+# new_user.set_values(request.POST)
+#
+# print (new_user.)
+#
+# reverse('admin:app_list', kwargs={'app_label': 'auth'}) must declare kwargs to pass dictionary
+#
+# if Users.objects.filter(username='dan').exists():
+#     password_hash = Users.objects.filter(username='dan').values('password')
+#     password_hash = password_hash[0]['password']
+#     validated = bcrypt.hashpw(str('123qweASD'), str(password_hash))
+#     if validated == str(password_hash):
+#         print 'valid'
+# print(the_hash == bcrypt.hashpw('secret', the_hash))
+# print(the_hash)
+# print(salt)
+# print(the_hash.find(salt))
+#
+#               TESTED GET AND SET CLASSES FOR USERS
+"""The classes were removed because a better way was found to do this"""
+#
+# class GET(models.Manager):
+#
+#     @staticmethod
+#     def ui(user_id):
+#         return Users.objects.filter(id=user_id)
+#
+#
+# class Set(models.Manager):
+#
+#     @staticmethod
+#     def new_user(fn, ln, un, email, dob, des, pw):
+#         """This makes a new user"""
+#         hash_pw = bcrypt.hashpw(pw, bcrypt.gensalt(14))
+#         Users.objects.create(first_name=fn, last_name=ln,
+#  username=un, email=email, dob_date=dob, description=des,
+#                              password=hash_pw)
+#
+#     @staticmethod
+#     def update(where, user, new_val):
+#         """The where is the column name to be updated
+#             The user is the user name to update
+#             The new_val is the value to be passed in"""
+#         user_instances = Users.objects.filter(username=user)
+#         if where == 'first_name':
+#             user_instances.update(first_name=new_val)  # Updates first name
+#         if where == 'last_name':
+#             user_instances.update(last_name=new_val)
+#         if where == 'username':
+#             user_instances.update(username=new_val)
+#         if where == 'email':
+#             user_instances.update(email=new_val)
+#         if where == 'description':
+#             user_instances.update(description=new_val)
+#         if where == 'password':
+#             hash_pw = bcrypt.hashpw(new_val, salt)
+#             user_instances.update(password=hash_pw)
